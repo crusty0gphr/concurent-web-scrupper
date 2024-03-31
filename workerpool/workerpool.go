@@ -4,13 +4,11 @@ import "sync"
 
 const defaultWorkersCount = 5
 
-type Task interface {
-	Process(wg *sync.WaitGroup) // TODO: error handing here
-}
+type Task func(wg *sync.WaitGroup) error
 
 type Pool struct {
-	tasks        []Task
 	tasksChan    chan Task
+	tasks        []Task
 	workersCount int
 	wg           sync.WaitGroup
 }
@@ -29,7 +27,7 @@ func NewWorkerPool(ops ...Option) *Pool {
 }
 
 func (p *Pool) Run() error {
-	for i := 0; i < p.workersCount; i++ {
+	for i := 0; i <= p.workersCount; i++ {
 		// spawn workers
 		go p.worker()
 	}
@@ -48,6 +46,6 @@ func (p *Pool) Run() error {
 
 func (p *Pool) worker() {
 	for task := range p.tasksChan {
-		task.Process(&p.wg)
+		_ = task(&p.wg)
 	}
 }
