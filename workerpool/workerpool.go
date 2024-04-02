@@ -1,6 +1,14 @@
 package workerpool
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
+
+var (
+	ErrZeroTasks   = errors.New("no tasks to run")
+	ErrZeroWorkers = errors.New("zero workers provided")
+)
 
 const defaultWorkersCount = 5
 
@@ -26,7 +34,22 @@ func NewWorkerPool(ops ...Option) *Pool {
 	return wp
 }
 
+func (p *Pool) fiascoCheck() error {
+	switch {
+	case len(p.tasks) == 0:
+		return ErrZeroTasks
+	case p.workersCount == 0:
+		return ErrZeroWorkers
+	default:
+		return nil
+	}
+}
+
 func (p *Pool) Run() error {
+	if err := p.fiascoCheck(); err != nil {
+		return err
+	}
+
 	for i := 0; i <= p.workersCount; i++ {
 		// spawn workers
 		go p.worker()
