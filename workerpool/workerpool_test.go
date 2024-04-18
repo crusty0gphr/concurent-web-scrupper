@@ -1,7 +1,9 @@
 package workerpool
 
 import (
+	"fmt"
 	"math"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -48,8 +50,10 @@ func TestNewWorkerPool(t *testing.T) {
 }
 
 func BenchmarkNewWorkerPool(b *testing.B) {
-	tasks := make([]Task, math.MaxInt8)
-	for i := 0; i < math.MaxInt8; i++ {
+	printMemStats()
+
+	tasks := make([]Task, math.MaxInt16)
+	for i := 0; i < math.MaxInt16; i++ {
 		tasks[i] = func(wg *sync.WaitGroup) error {
 			defer wg.Done()
 			_, err := fakeProcess(i)
@@ -60,7 +64,20 @@ func BenchmarkNewWorkerPool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		worker := NewWorkerPool(
 			WithTasks(tasks),
+			WithWorkersCount(25),
 		)
 		_ = worker.Run()
 	}
+	printMemStats()
+	fmt.Println()
+}
+
+func printMemStats() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	fmt.Printf("HeapAlloc = %.2f", float64(m.HeapAlloc)*0.000001)
+	fmt.Printf("\t\tHeapObjects = %v", (m.HeapObjects))
+	fmt.Printf("\t\tHeapSys = %v", (m.Sys))
+	fmt.Printf("\t\tNumGC = %v\n", m.NumGC)
 }
