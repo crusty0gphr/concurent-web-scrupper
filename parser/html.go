@@ -14,8 +14,6 @@ tokenParser:
 	for {
 		tokenType := t.Next()
 		switch tokenType {
-		case html.ErrorToken:
-			break tokenParser // jump out of this mess!
 		case html.StartTagToken, html.EndTagToken:
 			token := t.Token()
 			if token.Data != tag {
@@ -27,9 +25,11 @@ tokenParser:
 				}
 				// avoid duplicates
 				if _, ok := draft[attribute.Val]; !ok {
-					draft[attribute.Val] = struct{}{} // saving little space here
+					draft[attribute.Val] = struct{}{} // saving little space here, for no reason... idk
 				}
 			}
+		default:
+			break tokenParser
 		}
 	}
 	for key := range draft {
