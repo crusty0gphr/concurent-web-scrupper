@@ -64,7 +64,7 @@ func (p *Pool) Run() error {
 	close(p.tasksChan)
 
 	p.wg.Wait()
-	return nil // TODO: add an error return
+	return nil
 }
 
 func (p *Pool) worker() {
