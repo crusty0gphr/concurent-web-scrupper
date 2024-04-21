@@ -1,6 +1,7 @@
 package workerpool
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"runtime"
@@ -10,31 +11,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var errFailingProcess = errors.New("failing process")
+
 func fakeProcess(i int) (int, error) {
 	return i + 1, nil
 }
+func failingProcess(i int) (int, error) {
+	if i%2 == 0 {
+		return i, nil
+	}
+	return -1, errFailingProcess
+}
 
-func TestNewWorkerPool(t *testing.T) {
-	tasks := make([]Task, math.MaxInt8)
-	for i := 0; i < math.MaxInt8; i++ {
-		tasks[i] = func(wg *sync.WaitGroup) error {
+func genTasks(n int, p func(i int) (int, error)) []Task {
+	tasks := make([]Task, n)
+	for i := 0; i < n; i++ {
+		tasks[i] = func(wg *sync.WaitGroup) Report {
 			defer wg.Done()
-			_, err := fakeProcess(i)
-			return err
+			_, err := p(i)
+			return Report{
+				"num": fmt.Sprintf("%d", i),
+				"err": err,
+			}
 		}
 	}
+	return tasks
+}
 
+func TestErrTypes(t *testing.T) {
 	tests := map[string]func(t *testing.T){
-		"zero tasks": func(t *testing.T) {
+		"ErrZeroTasks": func(t *testing.T) {
 			worker := NewWorkerPool()
 			err := worker.Run()
 
 			assert.ErrorIs(t, err, ErrZeroTasks)
 		},
-		"zero workers": func(t *testing.T) {
+		"ErrZeroWorkers": func(t *testing.T) {
 			var zeroWorkers int
 			worker := NewWorkerPool(
-				WithTasks(tasks),
+				WithTasks(genTasks(math.MaxUint8, fakeProcess)),
 				WithWorkersCount(zeroWorkers),
 			)
 			err := worker.Run()
@@ -49,15 +64,37 @@ func TestNewWorkerPool(t *testing.T) {
 	}
 }
 
+func TestErrorChanMessages(t *testing.T) {
+	t.Run("FailingProcess", func(t *testing.T) {
+		tasks := genTasks(math.MaxUint8, failingProcess)
+		worker := NewWorkerPool(
+			WithWorkersCount(1),
+			WithTasks(tasks),
+		)
+		if err := worker.Run(); err != nil {
+			t.Errorf("failed to run worker: %v", err)
+		}
+
+		for _, report := range worker.errSlice {
+			if report["err"] != nil {
+				assert.ErrorIs(t, report["err"].(error), errFailingProcess)
+			}
+		}
+	})
+}
+
 func BenchmarkNewWorkerPool(b *testing.B) {
 	printMemStats()
 
 	tasks := make([]Task, math.MaxInt16)
 	for i := 0; i < math.MaxInt16; i++ {
-		tasks[i] = func(wg *sync.WaitGroup) error {
+		tasks[i] = func(wg *sync.WaitGroup) Report {
 			defer wg.Done()
 			_, err := fakeProcess(i)
-			return err
+			return Report{
+				"num": fmt.Sprintf("%d", i),
+				"err": fmt.Sprintf("%v", err),
+			}
 		}
 	}
 
@@ -77,7 +114,7 @@ func printMemStats() {
 	runtime.ReadMemStats(&m)
 
 	fmt.Printf("HeapAlloc = %.2f", float64(m.HeapAlloc)*0.000001)
-	fmt.Printf("\t\tHeapObjects = %v", (m.HeapObjects))
-	fmt.Printf("\t\tHeapSys = %v", (m.Sys))
+	fmt.Printf("\t\tHeapObjects = %v", m.HeapObjects)
+	fmt.Printf("\t\tHeapSys = %v", m.Sys)
 	fmt.Printf("\t\tNumGC = %v\n", m.NumGC)
 }

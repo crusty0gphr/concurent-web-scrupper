@@ -12,18 +12,22 @@ var (
 
 const defaultWorkersCount = 5
 
-type Task func(wg *sync.WaitGroup) error
+type Report map[string]any
+type Task func(wg *sync.WaitGroup) Report
 
 type Pool struct {
 	tasksChan    chan Task
+	errSlice     []Report
 	tasks        []Task
 	workersCount int
 	wg           sync.WaitGroup
+	mu           sync.RWMutex
 }
 
 func NewWorkerPool(ops ...Option) *Pool {
 	wp := &Pool{
 		tasksChan:    make(chan Task),
+		errSlice:     []Report{},
 		workersCount: defaultWorkersCount,
 		wg:           sync.WaitGroup{},
 	}
@@ -50,7 +54,7 @@ func (p *Pool) Run() error {
 		return err
 	}
 
-	for i := 0; i <= p.workersCount; i++ {
+	for i := 1; i <= p.workersCount; i++ {
 		// spawn workers
 		go p.worker()
 	}
@@ -59,16 +63,20 @@ func (p *Pool) Run() error {
 	for _, task := range p.tasks {
 		p.tasksChan <- task
 	}
+	p.wg.Wait()
 
 	// all workers return
 	close(p.tasksChan)
-
-	p.wg.Wait()
 	return nil
 }
 
 func (p *Pool) worker() {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	for task := range p.tasksChan {
-		_ = task(&p.wg)
+		if err := task(&p.wg); err != nil {
+			p.errSlice = append(p.errSlice, err)
+		}
 	}
 }
