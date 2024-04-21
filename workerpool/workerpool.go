@@ -21,6 +21,7 @@ type Pool struct {
 	tasks        []Task
 	workersCount int
 	wg           sync.WaitGroup
+	mu           sync.RWMutex
 }
 
 func NewWorkerPool(ops ...Option) *Pool {
@@ -70,6 +71,9 @@ func (p *Pool) Run() error {
 }
 
 func (p *Pool) worker() {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	for task := range p.tasksChan {
 		if err := task(&p.wg); err != nil {
 			p.errSlice = append(p.errSlice, err)

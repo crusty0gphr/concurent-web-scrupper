@@ -77,11 +77,7 @@ func TestErrorChanMessages(t *testing.T) {
 
 		for _, report := range worker.errSlice {
 			if report["err"] != nil {
-				assert.ErrorIs(
-					t,
-					report["err"].(error),
-					errFailingProcess,
-				)
+				assert.ErrorIs(t, report["err"].(error), errFailingProcess)
 			}
 		}
 	})
