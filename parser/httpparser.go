@@ -22,7 +22,7 @@ func ExtractUrls(url string) ([]string, error) {
 	urls := ExtractValueByAttrName(body, anchor, target)
 	var out []string
 	for _, u := range urls {
-		if validateURL(u) {
+		if !validateURL(u) {
 			continue
 		}
 		out = append(out, u)
@@ -31,8 +31,8 @@ func ExtractUrls(url string) ([]string, error) {
 }
 
 func validateURL(s string) bool {
-	u, err := url.Parse(s)
-	return err == nil && u.Scheme != "" && u.Host != ""
+	_, err := url.ParseRequestURI(s)
+	return err == nil
 }
 
 func ping(url string) (int, io.ReadCloser) {

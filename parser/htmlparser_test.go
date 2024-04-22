@@ -13,12 +13,11 @@ import (
 )
 
 const (
-	anchor = "a"
-	size   = math.MaxUint8
-	ipv4   = "(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[1-9])\\.)" +
+	size       = math.MaxUint8
+	ipv4Scheme = "(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[1-9])\\.)" +
 		"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.)" +
 		"{2}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])"
-	url = "(^[a-zA-Z0-9]*){6}"
+	urlScheme = "(^[a-zA-Z0-9]*){6}"
 )
 
 var genToken = rapid.Custom(func(t *rapid.T) []string {
@@ -31,11 +30,11 @@ var genToken = rapid.Custom(func(t *rapid.T) []string {
 	out := make([]string, size)
 	for i := range out {
 		if time.Now().Unix()%2 == 0 {
-			out[i] = fmt.Sprintf(format, prefix, rapid.StringMatching(ipv4).Filter(func(s string) bool {
+			out[i] = fmt.Sprintf(format, prefix, rapid.StringMatching(ipv4Scheme).Filter(func(s string) bool {
 				return len(s) > 0
 			}).Draw(t, "ip"))
 		}
-		out[i] = fmt.Sprintf(format, prefix, rapid.StringMatching(url).Filter(func(s string) bool {
+		out[i] = fmt.Sprintf(format, prefix, rapid.StringMatching(urlScheme).Filter(func(s string) bool {
 			return len(s) > 0
 		}).Draw(t, "text"))
 	}
@@ -53,7 +52,7 @@ func TestExtractValueByAttrName(t *testing.T) {
 		b.WriteString(strings.Join(tokens[:], ""))
 		b.WriteString("</body>")
 
-		res := ExtractValueByAttrName(strings.NewReader(b.String()), anchor, "href")
+		res := ExtractValueByAttrName(strings.NewReader(b.String()), anchor, target)
 		assert.Len(t, res, size)
 	})
 }
