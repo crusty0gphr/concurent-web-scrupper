@@ -13,8 +13,8 @@ var (
 const defaultWorkersCount = 5
 
 type (
-	Report map[string]any
-	Task   func(wg *sync.WaitGroup) Report
+	Error map[string]any
+	Task  func(wg *sync.WaitGroup) Error
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 
 type Pool struct {
 	tasksChan    chan Task
-	errSlice     []Report
+	errSlice     []Error
 	tasks        []Task
 	workersCount int
 }
@@ -32,7 +32,7 @@ type Pool struct {
 func NewWorkerPool(ops ...Option) *Pool {
 	wp := &Pool{
 		tasksChan:    make(chan Task),
-		errSlice:     []Report{},
+		errSlice:     []Error{},
 		workersCount: defaultWorkersCount,
 	}
 

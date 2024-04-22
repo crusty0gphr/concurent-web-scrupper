@@ -7,7 +7,7 @@ import (
 )
 
 func ExtractValueByAttrName(body io.Reader, tag, attr string) (output []string) {
-	draft := make(map[string]struct{})
+	tmp := make(map[string]struct{})
 	t := html.NewTokenizer(body)
 
 tokenParser:
@@ -24,15 +24,15 @@ tokenParser:
 					continue
 				}
 				// avoid duplicates
-				if _, ok := draft[attribute.Val]; !ok {
-					draft[attribute.Val] = struct{}{} // saving little space here, for no reason... idk
+				if _, ok := tmp[attribute.Val]; !ok {
+					tmp[attribute.Val] = struct{}{} // saving little space here, for no reason...
 				}
 			}
 		default:
 			break tokenParser
 		}
 	}
-	for key := range draft {
+	for key := range tmp {
 		output = append(output, key)
 	}
 	return

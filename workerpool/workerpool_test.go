@@ -26,10 +26,10 @@ func failingProcess(i int) (int, error) {
 func genTasks(n int, p func(i int) (int, error)) []Task {
 	tasks := make([]Task, n)
 	for i := 0; i < n; i++ {
-		tasks[i] = func(wg *sync.WaitGroup) Report {
+		tasks[i] = func(wg *sync.WaitGroup) Error {
 			defer wg.Done()
 			_, err := p(i)
-			return Report{
+			return Error{
 				"num": fmt.Sprintf("%d", i),
 				"err": err,
 			}
@@ -88,10 +88,10 @@ func BenchmarkNewWorkerPool(b *testing.B) {
 
 	tasks := make([]Task, math.MaxInt16)
 	for i := 0; i < math.MaxInt16; i++ {
-		tasks[i] = func(wg *sync.WaitGroup) Report {
+		tasks[i] = func(wg *sync.WaitGroup) Error {
 			defer wg.Done()
 			_, err := fakeProcess(i)
-			return Report{
+			return Error{
 				"num": fmt.Sprintf("%d", i),
 				"err": fmt.Sprintf("%v", err),
 			}
